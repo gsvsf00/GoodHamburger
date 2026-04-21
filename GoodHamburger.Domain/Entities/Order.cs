@@ -12,16 +12,12 @@ public class Order
 
     public void SetItems(Guid? sandwich, Guid? side, Guid? drink)
     {
-        // validation rule
-        if (sandwich == Guid.Empty || side == Guid.Empty || drink == Guid.Empty)
-            throw new Exception("Invalid item.");
-
         SandwichId = sandwich;
         SideId = side;
         DrinkId = drink;
     }
 
-    public void CalculateTotals(decimal subtotal, decimal discount)
+    public void ApplyTotals(decimal subtotal, decimal discount)
     {
         Subtotal = subtotal;
         Discount = discount;

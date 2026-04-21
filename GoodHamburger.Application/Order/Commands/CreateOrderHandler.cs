@@ -34,13 +34,12 @@ public class CreateOrderHandler
             items.Add(item);
         }
 
-        var order = new Order();
-        order.SetItems(sandwichId, sideId, drinkId);
-
         var subtotal = items.Sum(i => i.Price);
         var discount = _discount.Calculate(items);
 
-        order.CalculateTotals(subtotal, discount);
+        var order = new Order();
+        order.SetItems(sandwichId, sideId, drinkId);
+        order.ApplyTotals(subtotal, discount);
 
         await _orderRepo.AddAsync(order);
 
