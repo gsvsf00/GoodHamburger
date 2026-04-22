@@ -2,9 +2,9 @@
 {
     public decimal Calculate(List<MenuItem> items)
     {
-        var hasSandwich = items.Any(i => i.Type == ProductType.Sandwich);
-        var hasSide = items.Any(i => i.Type == ProductType.Side);
-        var hasDrink = items.Any(i => i.Type == ProductType.Drink);
+        var hasSandwich = items.Any(i => i.Category.Code == "SANDWICH");
+        var hasSide = items.Any(i => i.Category.Code == "SIDE");
+        var hasDrink = items.Any(i => i.Category.Code == "DRINK");
 
         var subtotal = items.Sum(i => i.Price);
 

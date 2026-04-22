@@ -10,8 +10,12 @@ public class MenuRepository : IMenuRepository
     }
 
     public async Task<List<MenuItem>> GetAllAsync()
-        => await _context.MenuItems.ToListAsync();
+        => await _context.MenuItems
+            .Include(item => item.Category)
+            .ToListAsync();
 
     public async Task<MenuItem?> GetByIdAsync(Guid id)
-        => await _context.MenuItems.FindAsync(id);
+        => await _context.MenuItems
+            .Include(item => item.Category)
+            .FirstOrDefaultAsync(item => item.Id == id);
 }

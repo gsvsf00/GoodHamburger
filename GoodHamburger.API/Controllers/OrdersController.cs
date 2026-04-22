@@ -14,11 +14,19 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderRequest request)
     {
-        var id = await _handler.Handle(
+        var result = await _handler.Handle(
             request.SandwichId,
             request.SideId,
             request.DrinkId);
 
-        return Ok(new { id });
+        return Ok(result);
+    }
+
+    [HttpGet("pedido/{id}")]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        var result = await _handler.Get(id);
+
+        return Ok(result);
     }
 }

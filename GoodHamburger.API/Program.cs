@@ -33,14 +33,28 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.Migrate();
 
+    if (!context.Categories.Any())
+    {
+        var sandwich = new Category { Name = "Sanduíche", Code = "SANDWICH" };
+        var side = new Category { Name = "Extra", Code = "SIDE" };
+        var drink = new Category { Name = "Bebida", Code = "DRINK" };
+
+        context.Categories.AddRange(sandwich, side, drink);
+        context.SaveChanges();
+    }
+
+    var sandwichCategory = context.Categories.First(c => c.Code == "SANDWICH");
+    var sideCategory = context.Categories.First(c => c.Code == "SIDE");
+    var drinkCategory = context.Categories.First(c => c.Code == "DRINK");
+
     if (!context.MenuItems.Any())
     {
         context.MenuItems.AddRange(
-            new MenuItem { Name = "X Burger", Price = 5, Type = ProductType.Sandwich },
-            new MenuItem { Name = "X Egg", Price = 4.5m, Type = ProductType.Sandwich },
-            new MenuItem { Name = "X Bacon", Price = 7, Type = ProductType.Sandwich },
-            new MenuItem { Name = "Fries", Price = 2, Type = ProductType.Side },
-            new MenuItem { Name = "Soda", Price = 2.5m, Type = ProductType.Drink }
+            new MenuItem { Name = "X Burger", Price = 5, CategoryId = sandwichCategory.Id },
+            new MenuItem { Name = "X Egg", Price = 4.5m, CategoryId = sandwichCategory.Id },
+            new MenuItem { Name = "X Bacon", Price = 7, CategoryId = sandwichCategory.Id },
+            new MenuItem { Name = "Batata frita", Price = 2, CategoryId = sideCategory.Id },
+            new MenuItem { Name = "Refrigerante", Price = 2.5m, CategoryId = drinkCategory.Id }
         );
 
         context.SaveChanges();
