@@ -75,6 +75,58 @@ public class CreateOrderHandler
         return OrderResult(order, menuItems);
     }
 
+    public async Task<CreateOrderResult> UpdateOrder(Guid id, Guid? sandwichId, Guid? sideId, Guid? drinkId)
+    {
+        var order = await _orderRepo.GetByIdAsync(id)
+            ?? throw new Exception("Pedido não encontrado");
+
+        var finalSandwichId = sandwichId;
+        var finalSideId = sideId;
+        var finalDrinkId = drinkId;
+
+        var ids = new[] { finalSandwichId, finalSideId, finalDrinkId }
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .ToList();
+
+        var menuItems = new List<MenuItem>();
+
+        foreach (var itemId in ids)
+        {
+            var item = await _menuRepo.GetByIdAsync(itemId)
+                ?? throw new Exception($"Item {itemId} não encontrado");
+
+            menuItems.Add(item);
+        }
+
+        var duplicatedCategory = menuItems
+            .GroupBy(i => i.Category.Code)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (duplicatedCategory != null)
+            throw new Exception($"Somente um item da categoria {duplicatedCategory.Key} é permitido");
+
+        if (!menuItems.Any(i => i.Category.Code == "SANDWICH"))
+            throw new Exception("Pedido deve conter um sandwich");
+
+        var subtotal = menuItems.Sum(i => i.Price);
+        var discount = _discount.Calculate(menuItems);
+
+        order.SetItems(finalSandwichId, finalSideId, finalDrinkId);
+        order.ApplyTotals(subtotal, discount);
+
+        await _orderRepo.UpdateAsync(order);
+
+        return OrderResult(order, menuItems);
+    }
+
+    public async Task DeleteOrder(Guid id)
+    {
+        var order = await _orderRepo.GetByIdAsync(id)
+            ?? throw new Exception("Pedido não encontrado");
+        await _orderRepo.DeleteAsync(order);
+    }
+
     private static CreateOrderResult OrderResult(Order order, List<MenuItem> menuItems)
     {
         decimal discountRate = order.Subtotal == 0 ? 0 : order.Discount / order.Subtotal;

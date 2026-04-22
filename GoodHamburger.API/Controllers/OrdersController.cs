@@ -29,4 +29,24 @@ public class OrdersController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPut("pedido/{id}")]
+    public async Task<IActionResult> Update(Guid id, UpdateOrderRequest request)
+    {
+        var result = await _handler.UpdateOrder(
+            id,
+            request.SandwichId,
+            request.SideId,
+            request.DrinkId);
+
+        return Ok(result);
+    }
+
+    [HttpDelete("pedido/{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _handler.DeleteOrder(id);
+
+        return NoContent();
+    }
 }
