@@ -14,7 +14,7 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderRequest request)
     {
-        var result = await _handler.Handle(
+        var result = await _handler.CreateOrder(
             request.SandwichId,
             request.SideId,
             request.DrinkId);
@@ -27,6 +27,13 @@ public class OrdersController : ControllerBase
     {
         var result = await _handler.Get(id);
 
+        return Ok(result);
+    }
+
+    [HttpGet("pedidos")]
+    public async Task<IActionResult> GetAll()
+    {
+        var result = await _handler.GetAll();
         return Ok(result);
     }
 

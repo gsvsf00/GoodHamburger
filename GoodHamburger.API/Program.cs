@@ -2,6 +2,17 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -35,7 +46,7 @@ using (var scope = app.Services.CreateScope())
 
     if (!context.Categories.Any())
     {
-        var sandwich = new Category { Name = "Sanduíche", Code = "SANDWICH" };
+        var sandwich = new Category { Name = "Sanduiche", Code = "SANDWICH" };
         var side = new Category { Name = "Extra", Code = "SIDE" };
         var drink = new Category { Name = "Bebida", Code = "DRINK" };
 
@@ -68,6 +79,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 

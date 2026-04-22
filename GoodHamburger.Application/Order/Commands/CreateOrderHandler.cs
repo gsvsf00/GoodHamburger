@@ -14,7 +14,7 @@ public class CreateOrderHandler
         _discount = discount;
     }
 
-    public async Task<CreateOrderResult> Handle(Guid? sandwichId, Guid? sideId, Guid? drinkId)
+    public async Task<CreateOrderResult> CreateOrder(Guid? sandwichId, Guid? sideId, Guid? drinkId)
     {
         var ids = new[] { sandwichId, sideId, drinkId }
             .Where(x => x.HasValue)
@@ -26,10 +26,10 @@ public class CreateOrderHandler
         foreach (var id in ids)
         {
             var item = await _menuRepo.GetByIdAsync(id)
-                ?? throw new Exception("Item não encontrado");
+                ?? throw new Exception("Item nao encontrado");
 
             if (menuItems.Any(i => i.Category.Code == item.Category.Code))
-                throw new Exception($"Somente um {item.Category.Name} é permitido");
+                throw new Exception($"Somente um {item.Category.Name} e permitido");
 
             menuItems.Add(item);
         }
@@ -49,36 +49,72 @@ public class CreateOrderHandler
     public async Task<CreateOrderResult> Get(Guid id)
     {
         Order order = await _orderRepo.GetByIdAsync(id)
-            ?? throw new Exception("Pedido não encontrado");
+            ?? throw new Exception("Pedido nao encontrado");
 
         var menuItems = new List<MenuItem>();
 
         if (order.SandwichId.HasValue)
         {
             var sandwich = await _menuRepo.GetByIdAsync(order.SandwichId.Value)
-                ?? throw new Exception(" Sanduíche não encontrado");
+                ?? throw new Exception("Sanduiche nao encontrado");
             menuItems.Add(sandwich);
         }
         if (order.SideId.HasValue)
         {
             var side = await _menuRepo.GetByIdAsync(order.SideId.Value)
-                ?? throw new Exception("Extra não encontrado");
+                ?? throw new Exception("Extra nao encontrado");
             menuItems.Add(side);
         }
         if (order.DrinkId.HasValue)
         {
             var drink = await _menuRepo.GetByIdAsync(order.DrinkId.Value)
-                ?? throw new Exception("Refrigerante não encontrado");
+                ?? throw new Exception("Refrigerante nao encontrado");
             menuItems.Add(drink);
         }
 
         return OrderResult(order, menuItems);
     }
 
+    public async Task<List<CreateOrderResult>> GetAll()
+    {
+        var orders = await _orderRepo.GetAllAsync();
+        var results = new List<CreateOrderResult>();
+
+        foreach (var order in orders)
+        {
+            var menuItems = new List<MenuItem>();
+
+            if (order.SandwichId.HasValue)
+            {
+                var sandwich = await _menuRepo.GetByIdAsync(order.SandwichId.Value);
+                if (sandwich != null)
+                    menuItems.Add(sandwich);
+            }
+
+            if (order.SideId.HasValue)
+            {
+                var side = await _menuRepo.GetByIdAsync(order.SideId.Value);
+                if (side != null)
+                    menuItems.Add(side);
+            }
+
+            if (order.DrinkId.HasValue)
+            {
+                var drink = await _menuRepo.GetByIdAsync(order.DrinkId.Value);
+                if (drink != null)
+                    menuItems.Add(drink);
+            }
+
+            results.Add(OrderResult(order, menuItems));
+        }
+
+        return results;
+    }
+
     public async Task<CreateOrderResult> UpdateOrder(Guid id, Guid? sandwichId, Guid? sideId, Guid? drinkId)
     {
         var order = await _orderRepo.GetByIdAsync(id)
-            ?? throw new Exception("Pedido não encontrado");
+            ?? throw new Exception("Pedido nÃ£o encontrado");
 
         var finalSandwichId = sandwichId;
         var finalSideId = sideId;
@@ -94,7 +130,7 @@ public class CreateOrderHandler
         foreach (var itemId in ids)
         {
             var item = await _menuRepo.GetByIdAsync(itemId)
-                ?? throw new Exception($"Item {itemId} não encontrado");
+                ?? throw new Exception($"Item {itemId} nÃ£o encontrado");
 
             menuItems.Add(item);
         }
@@ -104,10 +140,7 @@ public class CreateOrderHandler
             .FirstOrDefault(g => g.Count() > 1);
 
         if (duplicatedCategory != null)
-            throw new Exception($"Somente um item da categoria {duplicatedCategory.Key} é permitido");
-
-        if (!menuItems.Any(i => i.Category.Code == "SANDWICH"))
-            throw new Exception("Pedido deve conter um sandwich");
+            throw new Exception($"Somente um item da categoria {duplicatedCategory.Key} e permitido");
 
         var subtotal = menuItems.Sum(i => i.Price);
         var discount = _discount.Calculate(menuItems);
@@ -123,7 +156,7 @@ public class CreateOrderHandler
     public async Task DeleteOrder(Guid id)
     {
         var order = await _orderRepo.GetByIdAsync(id)
-            ?? throw new Exception("Pedido não encontrado");
+            ?? throw new Exception("Pedido nÃ£o encontrado");
         await _orderRepo.DeleteAsync(order);
     }
 
@@ -138,7 +171,7 @@ public class CreateOrderHandler
             {
                 Id = i.Id,
                 Name = i.Name,
-                Type = i.Category.Code,
+                Type = i.Category.Name,
                 Price = i.Price
             }).ToList(),
             Subtotal = order.Subtotal,
@@ -169,6 +202,6 @@ public class CreateOrderHandler
         if (hasSandwich && hasSide)
             return $"Combo ({categories["SANDWICH"]} + {categories["SIDE"]}) - 10%";
 
-        return "No discount applied";
+        return "Nenhum desconto aplicado";
     }
 }
