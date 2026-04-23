@@ -1,0 +1,467 @@
+@page "/orders"
+@using GoodHamburger.WEB.DTOs
+@using GoodHamburger.WEB.Services
+@inject ApiService ApiService
+@using System.Globalization
+@using System.Text
+
+<PageTitle>Pedidos - Good Hamburger</PageTitle>
+
+<div class="container mt-5">
+    <h1>Meus pedidos</h1>
+    <p class="text-muted">Visualize e gerencie seus pedidos</p>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success">@successMessage</div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info">Carregando pedidos...</div>
+    }
+    else if (orders == null || orders.Count == 0)
+    {
+        <div class="alert alert-info">
+            <p>Nenhum pedido ainda.</p>
+            <a href="/" class="btn btn-primary btn-sm">Criar primeiro pedido</a>
+        </div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID do pedido</th>
+                            <th>Categorias</th>
+                            <th>Subtotal</th>
+                            <th>Desconto</th>
+                            <th>Total</th>
+                            <th>Acoes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in orders)
+                        {
+                            <tr style="cursor: pointer;" @onclick="() => ToggleOrderDetails(order.Id)">
+                                <td>@order.Id.ToString().Substring(0, 8)</td>
+                                <td>
+                                    @if (order.Products is null || order.Products.Count == 0)
+                                    {
+                                        <span class="text-muted">Sem categorias</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex flex-wrap gap-1 mb-1">
+                                            @foreach (var category in order.Products.Select(p => p.Type).Distinct())
+                                            {
+                                                <span class="badge bg-secondary">@category</span>
+                                            }
+                                        </div>
+                                        <small class="text-muted">
+                                            @string.Join(", ", order.Products.Select(p => p.Name))
+                                        </small>
+                                    }
+                                </td>
+                                <td>$@order.Subtotal.ToString("F2")</td>
+                                <td>$@order.Discount.ToString("F2")</td>
+                                <td>$@order.Total.ToString("F2")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-2"
+                                            @onclick="() => StartEditOrder(order)"
+                                            @onclick:stopPropagation="true">
+                                        Editar
+                                    </button>
+                                    <button class="btn btn-sm btn-danger"
+                                            @onclick="() => OpenDeleteConfirm(order.Id)"
+                                            @onclick:stopPropagation="true">
+                                        Cancelar
+                                    </button>
+                                </td>
+                            </tr>
+
+                            @if (expandedOrderId == order.Id)
+                            {
+                                <tr>
+                                    <td colspan="6" class="bg-light">
+                                        <div class="p-3">
+                                            <strong>Itens deste pedido:</strong>
+                                            @if (order.Products is null || order.Products.Count == 0)
+                                            {
+                                                <p class="text-muted mb-0 mt-2">Nenhum item encontrado.</p>
+                                            }
+                                            else
+                                            {
+                                                <ul class="mb-0 mt-2">
+                                                    @foreach (var product in order.Products)
+                                                    {
+                                                        <li>
+                                                            @product.Name (@product.Type) - $@product.Price.ToString("F2")
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            }
+
+                                            @if (editingOrderId == order.Id)
+                                            {
+                                                <div class="mt-4 border-top pt-3">
+                                                    <h6 class="mb-3">Atualizar pedido</h6>
+
+                                                    <div class="row g-3">
+                                                        @foreach (var category in GetEditableCategories())
+                                                        {
+                                                            <div class="col-md-4">
+                                                                <label class="form-label">@category</label>
+                                                                <select class="form-select" value="@GetSelectedItemIdByCategory(category)" @onchange="eventArgs => UpdateSelectedItem(category, eventArgs.Value?.ToString())">
+                                                                    <option value="">Selecione @category.ToLowerInvariant()</option>
+                                                                    @foreach (var item in GetMenuItemsByCategory(category))
+                                                                    {
+                                                                        <option value="@item.Id">@item.Name</option>
+                                                                    }
+                                                                </select>
+                                                            </div>
+                                                        }
+                                                    </div>
+
+                                                    <div class="d-flex gap-2 mt-4">
+                                                        <button class="btn btn-success" @onclick="OpenUpdateConfirm">
+                                                            Salvar alteracoes
+                                                        </button>
+                                                        <button class="btn btn-outline-secondary" @onclick="CancelEdit">
+                                                            Cancelar edicao
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary">Voltar ao cardapio</a>
+    </div>
+</div>
+
+<ConfirmDialog IsOpen="isConfirmOpen"
+               IsOpenChanged="OnConfirmChanged"
+               Title="@confirmTitle"
+               Message="@confirmMessage"
+               ConfirmText="@confirmText"
+               CancelText="Cancelar"
+               OnConfirm="ConfirmPendingAction" />
+
+@code {
+    private List<CreateOrderResultDto>? orders;
+    private List<MenuItemDto>? menuItems;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? successMessage;
+    private Guid? expandedOrderId;
+    private Guid? editingOrderId;
+    private Guid? selectedSandwichId;
+    private Guid? selectedSideId;
+    private Guid? selectedDrinkId;
+    private bool isConfirmOpen;
+    private string confirmTitle = string.Empty;
+    private string confirmMessage = string.Empty;
+    private string confirmText = string.Empty;
+    private PendingAction pendingAction = PendingAction.None;
+    private Guid? pendingOrderId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+
+        try
+        {
+            var ordersTask = ApiService.GetOrders();
+            var menuTask = ApiService.GetMenu();
+            await Task.WhenAll(ordersTask, menuTask);
+
+            orders = await ordersTask;
+            menuItems = await menuTask;
+            errorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar pedidos: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteOrder(Guid id)
+    {
+        try
+        {
+            await ApiService.DeleteOrder(id);
+            if (expandedOrderId == id)
+            {
+                expandedOrderId = null;
+            }
+
+            if (editingOrderId == id)
+            {
+                CancelEdit();
+            }
+
+            successMessage = "Pedido cancelado com sucesso.";
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao cancelar pedido: {ex.Message}";
+        }
+    }
+
+    private void ToggleOrderDetails(Guid id)
+    {
+        expandedOrderId = expandedOrderId == id ? null : id;
+    }
+
+    private void StartEditOrder(CreateOrderResultDto order)
+    {
+        editingOrderId = order.Id;
+        selectedSandwichId = null;
+        selectedSideId = null;
+        selectedDrinkId = null;
+
+        if (menuItems is not null)
+        {
+            foreach (var product in order.Products)
+            {
+                var kind = GetCategoryKind(product.Type);
+                var matchingItem = menuItems.FirstOrDefault(item =>
+                    string.Equals(item.Name, product.Name, StringComparison.OrdinalIgnoreCase) &&
+                    GetCategoryKind(item.Category?.Name) == kind);
+
+                if (matchingItem is null)
+                {
+                    continue;
+                }
+
+                switch (kind)
+                {
+                    case CategoryKind.Sandwich:
+                        selectedSandwichId = matchingItem.Id;
+                        break;
+                    case CategoryKind.Side:
+                        selectedSideId = matchingItem.Id;
+                        break;
+                    case CategoryKind.Drink:
+                        selectedDrinkId = matchingItem.Id;
+                        break;
+                }
+            }
+        }
+
+        if (expandedOrderId != order.Id)
+        {
+            expandedOrderId = order.Id;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingOrderId = null;
+        selectedSandwichId = null;
+        selectedSideId = null;
+        selectedDrinkId = null;
+    }
+
+    private void OpenDeleteConfirm(Guid id)
+    {
+        pendingAction = PendingAction.Delete;
+        pendingOrderId = id;
+        confirmTitle = "Excluir pedido";
+        confirmMessage = "Tem certeza que deseja excluir este pedido?";
+        confirmText = "Excluir";
+        isConfirmOpen = true;
+    }
+
+    private void OpenUpdateConfirm()
+    {
+        if (!editingOrderId.HasValue)
+        {
+            return;
+        }
+
+        pendingAction = PendingAction.Update;
+        pendingOrderId = editingOrderId;
+        confirmTitle = "Atualizar pedido";
+        confirmMessage = "Deseja salvar as alteracoes deste pedido?";
+        confirmText = "Atualizar";
+        isConfirmOpen = true;
+    }
+
+    private async Task ConfirmPendingAction()
+    {
+        if (!pendingOrderId.HasValue)
+        {
+            return;
+        }
+
+        var orderId = pendingOrderId.Value;
+        isConfirmOpen = false;
+
+        if (pendingAction == PendingAction.Delete)
+        {
+            await DeleteOrder(orderId);
+        }
+        else if (pendingAction == PendingAction.Update)
+        {
+            await UpdateOrder(orderId);
+        }
+
+        pendingAction = PendingAction.None;
+        pendingOrderId = null;
+    }
+
+    private async Task UpdateOrder(Guid id)
+    {
+        try
+        {
+            await ApiService.UpdateOrder(id, new UpdateOrderRequest
+            {
+                SandwichId = selectedSandwichId,
+                SideId = selectedSideId,
+                DrinkId = selectedDrinkId
+            });
+
+            successMessage = "Pedido atualizado com sucesso.";
+            CancelEdit();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao atualizar pedido: {ex.Message}";
+        }
+    }
+
+    private Task OnConfirmChanged(bool value)
+    {
+        isConfirmOpen = value;
+        return Task.CompletedTask;
+    }
+
+    private IEnumerable<MenuItemDto> GetMenuItemsByCategory(string categoryName)
+    {
+        return menuItems?.Where(item => string.Equals(item.Category?.Name, categoryName, StringComparison.OrdinalIgnoreCase))
+            ?? Enumerable.Empty<MenuItemDto>();
+    }
+
+    private IEnumerable<string> GetEditableCategories()
+    {
+        return menuItems?
+            .Select(item => item.Category?.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name)
+            .OfType<string>()
+            ?? Enumerable.Empty<string>();
+    }
+
+    private string? GetSelectedItemIdByCategory(string categoryName)
+    {
+        var selectedId = GetCategoryKind(categoryName) switch
+        {
+            CategoryKind.Sandwich => selectedSandwichId,
+            CategoryKind.Side => selectedSideId,
+            CategoryKind.Drink => selectedDrinkId,
+            _ => null
+        };
+
+        return selectedId?.ToString();
+    }
+
+    private void UpdateSelectedItem(string categoryName, string? value)
+    {
+        Guid? parsedValue = Guid.TryParse(value, out var id) ? id : null;
+
+        switch (GetCategoryKind(categoryName))
+        {
+            case CategoryKind.Sandwich:
+                selectedSandwichId = parsedValue;
+                break;
+            case CategoryKind.Side:
+                selectedSideId = parsedValue;
+                break;
+            case CategoryKind.Drink:
+                selectedDrinkId = parsedValue;
+                break;
+        }
+    }
+
+    private static CategoryKind GetCategoryKind(string? categoryName)
+    {
+        var normalized = NormalizeCategory(categoryName);
+
+        if (normalized is "SANDUICHE" or "SANDWICH")
+            return CategoryKind.Sandwich;
+
+        if (normalized is "EXTRA" or "SIDE")
+            return CategoryKind.Side;
+
+        if (normalized is "BEBIDA" or "DRINK")
+            return CategoryKind.Drink;
+
+        return CategoryKind.Unknown;
+    }
+
+    private static string NormalizeCategory(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+
+        foreach (var c in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (category != UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.ToString().Normalize(NormalizationForm.FormC).Trim().ToUpperInvariant();
+    }
+
+    private enum CategoryKind
+    {
+        Unknown,
+        Sandwich,
+        Side,
+        Drink
+    }
+
+    private enum PendingAction
+    {
+        None,
+        Delete,
+        Update
+    }
+}

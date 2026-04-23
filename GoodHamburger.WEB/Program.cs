@@ -1,10 +1,19 @@
 using GoodHamburger.WEB.Components;
+using GoodHamburger.WEB.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddScoped<ApiService>();
+builder.Services.AddScoped<CartService>();
+
+builder.Services.AddScoped(sp => new HttpClient
+{
+    BaseAddress = new Uri("http://localhost:5063/")
+});
 
 var app = builder.Build();
 

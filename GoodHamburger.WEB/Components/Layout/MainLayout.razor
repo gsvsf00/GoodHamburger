@@ -1,23 +1,56 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject GoodHamburger.WEB.Services.CartService CartService
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="layout-shell">
+    <header class="gh-header">
+        <div class="container d-flex align-items-center justify-content-between py-3">
+            <a class="brand" href="/">Good Hamburger</a>
+            <nav class="d-flex gap-3">
+                <NavLink href="/" Match="NavLinkMatch.All" class="gh-link">Cardapio</NavLink>
+                <NavLink href="/orders" class="gh-link">Pedidos</NavLink>
+            </nav>
+            <button class="btn btn-outline-primary btn-sm" @onclick="ToggleCart">
+                Carrinho (@CartService.Items.Count)
+            </button>
+        </div>
+    </header>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+        <article class="container py-3">
             @Body
         </article>
     </main>
+
+    <CartDrawer @bind-IsOpen="isCartOpen" />
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+    Ocorreu um erro nao tratado.
+    <a href="." class="reload">Recarregar</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool isCartOpen;
+
+    protected override void OnInitialized()
+    {
+        CartService.OnChange += HandleCartChange;
+    }
+
+    public void Dispose()
+    {
+        CartService.OnChange -= HandleCartChange;
+    }
+
+    private void ToggleCart()
+    {
+        isCartOpen = !isCartOpen;
+    }
+
+    private void HandleCartChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+}

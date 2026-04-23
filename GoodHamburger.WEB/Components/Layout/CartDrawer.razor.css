@@ -1,0 +1,28 @@
+.cart-drawer {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: min(420px, 95vw);
+    height: 100vh;
+    background: #ffffff;
+    border-left: 1px solid #e5e7eb;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+    z-index: 1050;
+    transition: right 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.cart-drawer.open {
+    right: 0;
+}
+
+.cart-drawer-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.cart-drawer-body {
+    padding: 1rem;
+    overflow-y: auto;
+}

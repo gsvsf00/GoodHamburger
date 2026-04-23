@@ -1,7 +1,91 @@
 ﻿@page "/"
+@page "/menu"
+@using GoodHamburger.WEB.DTOs
+@using GoodHamburger.WEB.Services
+@inject ApiService ApiService
+@inject CartService CartService
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Cardapio - Good Hamburger</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container mt-5">
+    <h1>Cardapio</h1>
+    <p class="text-muted">Escolha seus itens e adicione ao carrinho global.</p>
 
-Welcome to your new app.
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert alert-success">@message</div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info">Carregando itens do cardapio...</div>
+    }
+    else if (menuItems == null || menuItems.Count == 0)
+    {
+        <div class="alert alert-warning">Nenhum item disponivel no cardapio.</div>
+    }
+    else
+    {
+        <div class="row mt-4">
+            @foreach (var item in menuItems)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <img src="@GetImageUrl(item)" class="card-img-top" alt="@item.Name" style="height: 180px; object-fit: cover;" />
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@item.Name</h5>
+                            <p class="card-text mb-2">
+                                <small class="text-muted">@item.Category?.Name</small>
+                            </p>
+                            <p class="text-success fw-bold mb-3">$@item.Price.ToString("F2")</p>
+                            <button class="btn btn-primary btn-sm mt-auto" @onclick="() => AddToCart(item)">
+                                Adicionar ao pedido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@code {
+    private List<MenuItemDto>? menuItems;
+    private bool isLoading = true;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            menuItems = await ApiService.GetMenu();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddToCart(MenuItemDto item)
+    {
+        CartService.Add(item);
+        message = $"{item.Name} adicionado ao carrinho.";
+    }
+
+    private static string GetImageUrl(MenuItemDto item)
+    {
+        var token = (item.Name ?? string.Empty).ToLowerInvariant();
+
+        if (token.Contains("bacon"))
+            return "https://images.unsplash.com/photo-1553979459-d2229ba7433b?auto=format&fit=crop&w=900&q=80";
+
+        if (token.Contains("batata") || token.Contains("fries"))
+            return "https://images.unsplash.com/photo-1518013431117-eb1465fa5752?auto=format&fit=crop&w=900&q=80";
+
+        if (token.Contains("refrigerante") || token.Contains("drink") || token.Contains("bebida"))
+            return "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=900&q=80";
+
+        return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80";
+    }
+}

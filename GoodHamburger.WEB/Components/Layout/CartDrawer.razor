@@ -1,0 +1,181 @@
+@using GoodHamburger.WEB.Services
+@implements IDisposable
+@inject CartService CartService
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+
+<div class="cart-drawer @(IsOpen ? "open" : string.Empty)">
+    <div class="cart-drawer-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Carrinho</h5>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="Toggle">Fechar</button>
+    </div>
+
+    <div class="cart-drawer-body">
+        @if (!string.IsNullOrWhiteSpace(message))
+        {
+            <div class="alert @(isError ? "alert-danger" : "alert-success") py-2">@message</div>
+        }
+
+        @if (!CartService.Items.Any())
+        {
+            <p class="text-muted mb-0">Carrinho vazio.</p>
+        }
+        else
+        {
+            <ul class="list-group mb-3">
+                @foreach (var item in CartService.Items)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold">@item.Name</div>
+                            <small class="text-muted">@item.Category?.Name</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-semibold">$@item.Price.ToString("F2")</div>
+                            <button class="btn btn-link btn-sm p-0 text-danger"
+                                    @onclick="() => RemoveFromCart(item.Category?.Name)">
+                                Remover
+                            </button>
+                        </div>
+                    </li>
+                }
+            </ul>
+
+            <p class="mb-3"><strong>Subtotal:</strong> $@CartService.Subtotal.ToString("F2")</p>
+
+            <div class="mb-3 p-3 rounded-3 bg-light">
+                <div class="d-flex justify-content-between">
+                    <span>Subtotal</span>
+                    <span>$@CartService.Subtotal.ToString("F2")</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Desconto</span>
+                    <span>-$@CartService.Discount.ToString("F2")</span>
+                </div>
+                <div class="d-flex justify-content-between fw-semibold mt-2">
+                    <span>Total</span>
+                    <span>$@CartService.Total.ToString("F2")</span>
+                </div>
+                <small class="text-muted d-block mt-2">@CartService.DiscountDescription</small>
+            </div>
+
+            <button class="btn btn-success w-100 mb-2" @onclick="OpenConfirmModal" disabled="@isSubmitting">
+                @(isSubmitting ? "Enviando..." : "Confirmar Pedido")
+            </button>
+            <button class="btn btn-outline-secondary w-100" @onclick="ClearCart" disabled="@isSubmitting">
+                Limpar Carrinho
+            </button>
+            @if (!CartService.HasSandwich)
+            {
+                <small class="text-muted d-block mt-2">Selecione pelo menos um sanduiche para enviar o pedido.</small>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private bool isSubmitting;
+    private bool isError;
+    private string? message;
+    private bool isConfirmOpen;
+
+    protected override void OnInitialized()
+    {
+        CartService.OnChange += HandleCartChange;
+    }
+
+    public void Dispose()
+    {
+        CartService.OnChange -= HandleCartChange;
+    }
+
+    private async Task Toggle()
+    {
+        await IsOpenChanged.InvokeAsync(!IsOpen);
+    }
+
+    private void HandleCartChange()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void RemoveFromCart(string? categoryName)
+    {
+        if (string.IsNullOrWhiteSpace(categoryName))
+        {
+            return;
+        }
+
+        CartService.Remove(categoryName);
+    }
+
+    private void ClearCart()
+    {
+        CartService.Clear();
+        isError = false;
+        message = "Carrinho limpo.";
+    }
+
+    private void OpenConfirmModal()
+    {
+        if (!CartService.HasSandwich)
+        {
+            isError = true;
+            message = "Pedido deve conter um sanduiche.";
+            return;
+        }
+
+        isConfirmOpen = true;
+    }
+
+    private async Task ConfirmOrder()
+    {
+        isConfirmOpen = false;
+
+        isSubmitting = true;
+        isError = false;
+        message = null;
+
+        try
+        {
+            var result = await ApiService.CreateOrder(CartService.ToCreateOrderRequest());
+            CartService.Clear();
+            message = result is null
+                ? "Pedido enviado com sucesso."
+                : $"Pedido {result.Id} criado. Total: ${result.Total:F2}";
+            await IsOpenChanged.InvokeAsync(false);
+            Navigation.NavigateTo("/orders");
+        }
+        catch (Exception ex)
+        {
+            isError = true;
+            message = $"Falha ao enviar pedido: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}
+
+<ConfirmDialog IsOpen="isConfirmOpen"
+               IsOpenChanged="OnConfirmModalChanged"
+               Title="Confirmar pedido"
+               Message="Você deseja enviar este pedido com os itens do carrinho?"
+               ConfirmText="Enviar pedido"
+               CancelText="Voltar"
+               OnConfirm="ConfirmOrder" />
+
+@code {
+    private Task OnConfirmModalChanged(bool value)
+    {
+        isConfirmOpen = value;
+        return Task.CompletedTask;
+    }
+}
