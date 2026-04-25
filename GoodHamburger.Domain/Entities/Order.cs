@@ -1,6 +1,6 @@
 public class Order
 {
-    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid Id { get; private set; }
 
     public Guid? SandwichId { get; private set; }
     public Guid? SideId { get; private set; }
@@ -9,6 +9,16 @@ public class Order
     public decimal Subtotal { get; private set; }
     public decimal Discount { get; private set; }
     public decimal Total { get; private set; }
+
+    public Order()
+    {
+        Id = Guid.NewGuid();
+    }
+
+    public Order(Guid id)
+    {
+        Id = id;
+    }
 
     public void SetItems(Guid? sandwich, Guid? side, Guid? drink)
     {

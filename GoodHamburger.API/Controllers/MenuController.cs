@@ -1,17 +1,21 @@
+using GoodHamburger.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
-[ApiController]
-[Route("api/[controller]")]
-public class MenuController : ControllerBase
+namespace GoodHamburger.API.Controllers
 {
-    private readonly IMenuRepository _repo;
-
-    public MenuController(IMenuRepository repo)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class MenuController : ControllerBase
     {
-        _repo = repo;
-    }
+        private readonly IMenuRepository _repo;
 
-    [HttpGet]
-    public async Task<IActionResult> Get()
-        => Ok(await _repo.GetAllAsync());
+        public MenuController(IMenuRepository repo)
+        {
+            _repo = repo;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Get()
+            => Ok(await _repo.GetAllAsync());
+    }
 }

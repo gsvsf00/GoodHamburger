@@ -1,5 +1,10 @@
-public interface IMenuRepository
+using GoodHamburger.Domain.Entities;
+
+namespace GoodHamburger.Application.Interfaces
 {
-    Task<List<MenuItem>> GetAllAsync();
-    Task<MenuItem?> GetByIdAsync(Guid id);
+    public interface IMenuRepository
+    {
+        Task<List<MenuItem>> GetAllAsync();
+        Task<MenuItem?> GetByIdAsync(Guid id);
+    }
 }

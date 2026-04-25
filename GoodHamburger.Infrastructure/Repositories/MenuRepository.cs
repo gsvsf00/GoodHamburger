@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using GoodHamburger.Application.Interfaces;
+using GoodHamburger.Domain.Entities;
+using GoodHamburger.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 public class MenuRepository : IMenuRepository
 {

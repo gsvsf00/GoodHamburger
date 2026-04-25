@@ -1,3 +1,9 @@
+using GoodHamburger.Application.Interfaces;
+using GoodHamburger.Application.Services;
+using GoodHamburger.Domain.Entities;
+
+namespace GoodHamburger.Application.OrderManagement.Commands;
+
 public class CreateOrderHandler
 {
     private readonly IOrderRepository _orderRepo;

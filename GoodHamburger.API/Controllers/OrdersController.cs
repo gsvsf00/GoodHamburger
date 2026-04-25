@@ -1,59 +1,64 @@
+using GoodHamburger.API.DTOs;
+using GoodHamburger.Application.OrderManagement.Commands;
 using Microsoft.AspNetCore.Mvc;
 
-[ApiController]
-[Route("api/[controller]")]
-public class OrdersController : ControllerBase
+namespace GoodHamburger.API.Controllers
 {
-    private readonly CreateOrderHandler _handler;
-
-    public OrdersController(CreateOrderHandler handler)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrdersController : ControllerBase
     {
-        _handler = handler;
-    }
+        private readonly CreateOrderHandler _handler;
 
-    [HttpPost]
-    public async Task<IActionResult> Create(CreateOrderRequest request)
-    {
-        var result = await _handler.CreateOrder(
-            request.SandwichId,
-            request.SideId,
-            request.DrinkId);
+        public OrdersController(CreateOrderHandler handler)
+        {
+            _handler = handler;
+        }
 
-        return Ok(result);
-    }
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateOrderRequest request)
+        {
+            var result = await _handler.CreateOrder(
+                request.SandwichId,
+                request.SideId,
+                request.DrinkId);
 
-    [HttpGet("pedido/{id}")]
-    public async Task<IActionResult> Get(Guid id)
-    {
-        var result = await _handler.Get(id);
+            return Ok(result);
+        }
 
-        return Ok(result);
-    }
+        [HttpGet("pedido/{id}")]
+        public async Task<IActionResult> Get(Guid id)
+        {
+            var result = await _handler.Get(id);
 
-    [HttpGet("pedidos")]
-    public async Task<IActionResult> GetAll()
-    {
-        var result = await _handler.GetAll();
-        return Ok(result);
-    }
+            return Ok(result);
+        }
 
-    [HttpPut("pedido/{id}")]
-    public async Task<IActionResult> Update(Guid id, UpdateOrderRequest request)
-    {
-        var result = await _handler.UpdateOrder(
-            id,
-            request.SandwichId,
-            request.SideId,
-            request.DrinkId);
+        [HttpGet("pedidos")]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _handler.GetAll();
+            return Ok(result);
+        }
 
-        return Ok(result);
-    }
+        [HttpPut("pedido/{id}")]
+        public async Task<IActionResult> Update(Guid id, UpdateOrderRequest request)
+        {
+            var result = await _handler.UpdateOrder(
+                id,
+                request.SandwichId,
+                request.SideId,
+                request.DrinkId);
 
-    [HttpDelete("pedido/{id}")]
-    public async Task<IActionResult> Delete(Guid id)
-    {
-        await _handler.DeleteOrder(id);
+            return Ok(result);
+        }
 
-        return NoContent();
+        [HttpDelete("pedido/{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _handler.DeleteOrder(id);
+
+            return NoContent();
+        }
     }
 }

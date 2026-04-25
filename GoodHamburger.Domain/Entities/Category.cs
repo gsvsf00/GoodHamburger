@@ -1,6 +1,9 @@
-﻿public class Category
+﻿namespace GoodHamburger.Domain.Entities
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = default!;
-    public string Code { get; set; } = default!;
+    public class Category
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = default!;
+        public string Code { get; set; } = default!;
+    }
 }

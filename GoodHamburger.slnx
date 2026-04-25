@@ -12,4 +12,7 @@
     <Project Path="GoodHamburger.API/GoodHamburger.API.csproj" />
     <Project Path="GoodHamburger.WEB/GoodHamburger.WEB.csproj" />
   </Folder>
+  <Folder Name="/GoodHamburger.Tests/">
+    <Project Path="GoodHamburger.Tests/GoodHamburger.Tests.csproj" />
+  </Folder>
 </Solution>
