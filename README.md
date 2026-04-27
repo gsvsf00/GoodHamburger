@@ -120,6 +120,18 @@ Itens de menu iniciais:
 * Batata frita
 * Refrigerante
 
-## Melhorias futuras
+## Testes unitários
 
-* Testes unitários para handlers e regras de desconto.
+Os testes unitários já foram implementados no projeto `GoodHamburger.Tests`, cobrindo os principais cenários de negócio e API.
+
+Cobertura atual:
+
+* Regras de desconto (`DiscountService`): valida os cenários de 20%, 15%, 10% e ausência de desconto.
+* Handler de criação de pedido (`CreateOrderHandler`): valida criação de pedido, cálculo de subtotal/desconto/total, retorno dos produtos e cenários de erro (item não encontrado e combinação inválida).
+* Controllers (`MenuController` e `OrdersController`): valida respostas HTTP esperadas para fluxos de sucesso e falha.
+
+Stack de testes:
+
+* xUnit
+* Moq
+* Microsoft.NET.Test.Sdk
